@@ -22,6 +22,7 @@
 
 
 
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
@@ -269,6 +270,7 @@ body.viewing #stage{cursor:default}
         <div class="row">
           <button class="btn" id="mManga" type="button" aria-pressed="true">漫画ネーム</button>
           <button class="btn" id="mSlide" type="button" aria-pressed="false">スライド</button>
+          <button class="btn" id="mIllust" type="button" aria-pressed="false">一枚絵（3:4）</button>
         </div>
       </div>
       <div>
@@ -314,7 +316,7 @@ body.viewing #stage{cursor:default}
         </div>
         <p style="margin-top:8px">ブラウザによっては使えません。ブラウザの枠やバーを完全に消したいときは、SafariでこのページのURLを開き、共有ボタンから「ホーム画面に追加」して、そのアイコンから開いてください。</p>
       </div>
-      <div>
+      <div id="tplSection">
         <h3 id="tplTitle">コマ割り（今のページに枠を足す）</h3>
         <div class="row" id="tplRow"></div>
       </div>
@@ -329,7 +331,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-16a（開き直したときの位置ずれを修正）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28a（一枚絵のノート）</p>
   </div>
 </div>
 
@@ -343,6 +345,8 @@ body.viewing #stage{cursor:default}
       <button class="btn" id="exPng" type="button">このページ（PNG）</button>
       <button class="btn" id="exJpg" type="button">このページ（JPEG）</button>
       <button class="btn" id="exSheet" type="button">一覧（PNG）</button>
+      <button class="btn" id="exAll" type="button" hidden>全ページを1枚ずつ（PNG）</button>
+      <button class="btn primary" id="exAllGo" type="button" hidden>まとめて保存</button>
       <button class="btn" id="exClose" type="button">閉じる</button>
     </div>
   </div>
@@ -373,18 +377,22 @@ body.viewing #stage{cursor:default}
   'use strict';
   var FMT={
     manga:{w:1000,h:1414,lw:5,frame:'コマ',tpl:'コマ割り（今のページに枠を足す）'},
-    slide:{w:1280,h:720,lw:4,frame:'枠',tpl:'レイアウト（今のページに枠を足す）'}
+    slide:{w:1280,h:720,lw:4,frame:'枠',tpl:'レイアウト（今のページに枠を足す）'},
+    illust:{w:1200,h:1600,lw:4,frame:'枠',tpl:''}
   };
   // 標準の紙の大きさ。縦・横で縦横を入れ替える
   function stdShape(mode,land){
-    var big=mode==='manga'?1414:1280, small=mode==='manga'?1000:720;
+    // 一枚絵は3:4（iPadの画面とほぼ同じ比率）
+    var big=mode==='manga'?1414:(mode==='illust'?1600:1280), small=mode==='manga'?1000:(mode==='illust'?1200:720);
     return land?{w:big,h:small}:{w:small,h:big};
   }
   var TEMPLATES={
     manga:[['1','1コマ'],['rows2','2段'],['rows3','3段'],['grid4','田の字'],['five','5コマ']],
-    slide:[['title','タイトル'],['cols2','2カラム'],['cols3','3カラム'],['imgtext','図と文']]
+    slide:[['title','タイトル'],['cols2','2カラム'],['cols3','3カラム'],['imgtext','図と文']],
+    illust:[]
   };
-  var K=3, MAXZ=3, EXP=2, THS=0.4, LH=1.35, PAPER='#fffdf7', INK='#1d1d21';
+  // K：画面の描く面の解像度（紙の何倍か）。紙が大きい一枚絵では、iPadの上限（約1670万ピクセル）に収まるよう下げる
+  var K=3, MAXZ=3, EXP=2, MAXPX=12.6e6, THS=0.4, LH=1.35, PAPER='#fffdf7', INK='#1d1d21';
   var KEY='rafucho-v2';
   var SWATCHES=['#1d1d21','#6b6b72','#d6342c','#f08a24','#f2c744','#3f9a55','#2f5bd8','#8e5bd0'];
   var RANGES={pen:[1,40,'size'],eraser:[6,90,'esize'],text:[16,200,'tsize']};
@@ -451,10 +459,11 @@ body.viewing #stage{cursor:default}
   function parseSaved(d){
     try{
       if(d&&d.docs){
-        var st={mode:d.mode==='slide'?'slide':'manga',docs:{}};
-        ['manga','slide'].forEach(function(m){
+        var st={mode:(d.mode==='slide'||d.mode==='illust')?d.mode:'manga',docs:{}};
+        ['manga','slide','illust'].forEach(function(m){
           var s=d.docs[m];
-          if(!s||!s.pages||!s.pages.length) throw new Error('bad');
+          // 以前の版の保存には一枚絵のノートがないので、白紙を1枚用意する
+          if(!s||!s.pages||!s.pages.length){var d1=stdShape(m,m==='slide');st.docs[m]={cur:0,pages:[newPage([],d1.w,d1.h)]};return;}
           st.docs[m]={cur:clamp(s.cur||0,0,s.pages.length-1),pages:s.pages.map(function(pe){
             if(Array.isArray(pe)){var d0=stdShape(m,m==='slide');return newPage(pe,d0.w,d0.h);}
             return newPage(pe.i,pe.w,pe.h);
@@ -468,7 +477,7 @@ body.viewing #stage{cursor:default}
   }
   // 以前の版はブラウザの小さな保存領域(localStorage)に保存していた。まずそこから読む
   try{state=parseSaved(JSON.parse(localStorage.getItem(KEY)));}catch(e){state=null;}
-  if(!state) state={mode:'manga',docs:{manga:{cur:0,pages:[newPage([],1000,1414)]},slide:{cur:0,pages:[newPage([],1280,720)]}}};
+  if(!state) state={mode:'manga',docs:{manga:{cur:0,pages:[newPage([],1000,1414)]},slide:{cur:0,pages:[newPage([],1280,720)]},illust:{cur:0,pages:[newPage([],1200,1600)]}}};
   /* 保存先：IndexedDB（ブラウザ内の大きな保存領域）。使えないときだけ localStorage */
   var idb=null, ready=false, saveTimer=null, warned=false;
   function idbOpen(){
@@ -500,7 +509,7 @@ body.viewing #stage{cursor:default}
   }
   function snapshotState(){
     var out={mode:state.mode,prefs:JSON.parse(JSON.stringify(prefs)),docs:{}};
-    ['manga','slide'].forEach(function(m){
+['manga','slide','illust'].forEach(function(m){
       out.docs[m]={cur:state.docs[m].cur,pages:state.docs[m].pages.map(function(p){return {i:p.items,w:p.w,h:p.h};})};
     });
     return out;
@@ -661,6 +670,7 @@ body.viewing #stage{cursor:default}
   function sizeCanvas(){
     reshapeBlank();
     var f=fmt();
+    K=Math.min(3,Math.sqrt(MAXPX/(f.w*f.h)));
     canvas.width=Math.round(f.w*K);canvas.height=Math.round(f.h*K);
     view={z:1,tx:0,ty:0};
     fit();fullRender();
@@ -748,6 +758,8 @@ body.viewing #stage{cursor:default}
     $('#tTapSwap').setAttribute('aria-pressed',String(!!prefs.tapSwap));
     $('#mManga').setAttribute('aria-pressed',String(state.mode==='manga'));
     $('#mSlide').setAttribute('aria-pressed',String(state.mode==='slide'));
+    $('#mIllust').setAttribute('aria-pressed',String(state.mode==='illust'));
+    $('#exAll').hidden=state.mode!=='illust';
     $('#bStrip').setAttribute('aria-pressed',String(!!prefs.strip));
     $('#vStrip').setAttribute('aria-pressed',String(!!prefs.strip));
     $('#vCount').textContent=(d.cur+1)+' / '+d.pages.length;
@@ -1163,6 +1175,7 @@ body.viewing #stage{cursor:default}
   function buildTpl(){
     var row=$('#tplRow');row.innerHTML='';
     $('#tplTitle').textContent=fmt().tpl;
+    $('#tplSection').style.display=TEMPLATES[state.mode].length?'':'none';
     TEMPLATES[state.mode].forEach(function(t){
       var b=document.createElement('button');
       b.type='button';b.className='btn';b.textContent=t[1];
@@ -1183,6 +1196,7 @@ body.viewing #stage{cursor:default}
   $('#bMenu').addEventListener('click',function(){buildTpl();openSheet('menuSheet');});
   $('#mManga').addEventListener('click',function(){setMode('manga');buildTpl();});
   $('#mSlide').addEventListener('click',function(){setMode('slide');buildTpl();});
+  $('#mIllust').addEventListener('click',function(){setMode('illust');buildTpl();});
   $('#mClose').addEventListener('click',function(){closeSheet('menuSheet');});
   $$('[data-in]').forEach(function(b){
     b.addEventListener('click',function(){prefs.input=b.dataset['in'];syncUI();save();});
@@ -1611,7 +1625,7 @@ body.viewing #stage{cursor:default}
   }
   function sheetToCanvas(){
     var mode=state.mode, pages=doc().pages;
-    var cols=mode==='manga'?3:2, cellW=mode==='manga'?400:560, pad=24;
+    var cols=mode==='slide'?2:3, cellW=mode==='slide'?560:(mode==='illust'?360:400), pad=24;
     var cellH=0;
     pages.forEach(function(pg){cellH=Math.max(cellH,Math.round(cellW*pg.h/pg.w));});
     var rows=Math.ceil(pages.length/cols);
@@ -1625,6 +1639,9 @@ body.viewing #stage{cursor:default}
     });
     return c;
   }
+  function modeSlug(m){return m==='manga'?'name':(m==='slide'?'slides':'illust');}
+  // 書き出しの解像度：一枚絵は紙の2.5倍（3000×4000ピクセル）、それ以外は2倍
+  function exportScale(){return state.mode==='illust'?2.5:EXP;}
   function canvasBlob(cv,type,q){
     return new Promise(function(res){cv.toBlob(function(b){res(b);},type,q);});
   }
@@ -1687,7 +1704,7 @@ body.viewing #stage{cursor:default}
         });
       });
     });
-    chain.then(function(){deliver(buildPDF(out),'rafucho-'+(mode==='manga'?'name':'slides')+'.pdf');})
+    chain.then(function(){deliver(buildPDF(out),'rafucho-'+modeSlug(mode)+'.pdf');})
       .catch(function(){toast('PDFを作れませんでした');});
   }
   $('#mExport').addEventListener('click',function(){
@@ -1698,15 +1715,48 @@ body.viewing #stage{cursor:default}
   });
   $('#exPdf').addEventListener('click',exportPDF);
   $('#exPng').addEventListener('click',function(){
-    canvasBlob(pageToCanvas(page(),state.mode,EXP),'image/png').then(function(b){deliver(b,'rafucho-p'+(doc().cur+1)+'.png');});
+    canvasBlob(pageToCanvas(page(),state.mode,exportScale()),'image/png').then(function(b){deliver(b,'rafucho-p'+(doc().cur+1)+'.png');});
   });
   $('#exJpg').addEventListener('click',function(){
-    canvasBlob(pageToCanvas(page(),state.mode,EXP),'image/jpeg',0.9).then(function(b){deliver(b,'rafucho-p'+(doc().cur+1)+'.jpg');});
+    canvasBlob(pageToCanvas(page(),state.mode,exportScale()),'image/jpeg',0.9).then(function(b){deliver(b,'rafucho-p'+(doc().cur+1)+'.jpg');});
   });
   $('#exSheet').addEventListener('click',function(){
     canvasBlob(sheetToCanvas(),'image/png').then(function(b){deliver(b,'rafucho-list.png');});
   });
-  $('#exClose').addEventListener('click',function(){closeSheet('exportSheet');});
+  $('#exClose').addEventListener('click',function(){closeSheet('exportSheet');$('#exAllGo').hidden=true;readyFiles=null;});
+  // 一枚絵：全ページを1枚ずつの画像にする。作るのに時間がかかるので、できあがってからもう一度押してもらう
+  // （iPadの共有メニューは、押した直後でないと開けないため）
+  var readyFiles=null;
+  $('#exAll').addEventListener('click',function(){
+    var mode=state.mode, pages=doc().pages.filter(function(pg){return pg.items.length;}), files=[], sc=exportScale();
+    if(!pages.length){toast('描いたページがありません');return;}
+    toast(pages.length+'枚の画像を作っています…');
+    var chain=Promise.resolve(), stamp=defaultRafuName();
+    pages.forEach(function(pg,i){
+      chain=chain.then(function(){
+        return canvasBlob(pageToCanvas(pg,mode,sc),'image/png').then(function(b){
+          files.push({blob:b,name:stamp+'-'+('00'+(i+1)).slice(-3)+'.png'});
+        });
+      });
+    });
+    chain.then(function(){
+      readyFiles=files;
+      var go=$('#exAllGo');go.textContent='まとめて保存（'+files.length+'枚）';go.hidden=false;
+      toast('できました。「まとめて保存」を押してください');
+    }).catch(function(){toast('画像を作れませんでした');});
+  });
+  $('#exAllGo').addEventListener('click',function(){
+    var files=readyFiles;if(!files) return;
+    var fl=null;
+    try{fl=files.map(function(f){return new File([f.blob],f.name,{type:'image/png'});});}catch(e){}
+    var touch=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
+    if(!dl&&touch&&fl&&navigator.canShare&&navigator.canShare({files:fl})){
+      navigator.share({files:fl}).catch(function(err){if(err&&err.name!=='AbortError') toast('保存できませんでした');});
+      return;
+    }
+    // パソコンなど：1枚ずつ順番に保存する
+    files.forEach(function(f,i){setTimeout(function(){deliver(f.blob,f.name);},i*400);});
+  });
 
   /* ---------- 作品ファイル（.rafu）：保存と読み込み ---------- */
   // 中身はJSON（線の点・太さ・色、文字、コマ、塗り、ページの大きさと並び）。使えるブラウザではgzipで小さくする
@@ -1715,7 +1765,7 @@ body.viewing #stage{cursor:default}
   function defaultRafuName(){
     var t=new Date();
     // 日本語のファイル名は、ブラウザによっては名前が付かず「download」になることがあるので英数字にしておく
-    return 'rafucho-'+(state.mode==='manga'?'name':'slides')+'-'+t.getFullYear()+pad2(t.getMonth()+1)+pad2(t.getDate())+'-'+pad2(t.getHours())+pad2(t.getMinutes());
+    return 'rafucho-'+modeSlug(state.mode)+'-'+t.getFullYear()+pad2(t.getMonth()+1)+pad2(t.getDate())+'-'+pad2(t.getHours())+pad2(t.getMinutes());
   }
   function cleanName(n){
     n=(n||'').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'').replace(/\.rafu$/i,'').trim();
@@ -1762,7 +1812,7 @@ body.viewing #stage{cursor:default}
   }
   function readNotebook(o){
     if(!o||o.format!=='rafucho'||!Array.isArray(o.pages)||!o.pages.length) return null;
-    var mode=o.mode==='slide'?'slide':'manga', d0=stdShape(mode,mode==='slide');
+    var mode=(o.mode==='slide'||o.mode==='illust')?o.mode:'manga', d0=stdShape(mode,mode==='slide');
     var pages=o.pages.map(function(pe){
       var w=isNum(pe&&pe.w)?clamp(pe.w,200,4000):d0.w, h=isNum(pe&&pe.h)?clamp(pe.h,200,4000):d0.h;
       var items=Array.isArray(pe&&pe.i)?pe.i.map(cleanItem).filter(Boolean):[];
@@ -1788,7 +1838,7 @@ body.viewing #stage{cursor:default}
       if(!nb){toast('ラフ帳の作品ファイルではないようです');return;}
       pendingOpen=nb;
       closeSheet('menuSheet');
-      var kind=nb.mode==='manga'?'漫画ネーム':'スライド';
+      var kind=nb.mode==='manga'?'漫画ネーム':(nb.mode==='slide'?'スライド':'一枚絵');
       $('#openInfo').textContent='「'+file.name+'」（'+kind+'・'+nb.pages.length+'ページ）を、'+kind+'のノートに読み込みます。'+(nb.newer?' このファイルは新しい版のラフ帳で作られています。一部が読み込めないかもしれません。':'');
       openSheet('openSheet');
     }).catch(function(err){toast(err&&err.message&&/ブラウザ/.test(err.message)?err.message:'ファイルを読み込めませんでした');});
