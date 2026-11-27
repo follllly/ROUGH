@@ -317,7 +317,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28b（向きに合わせて回す・保存して次へ）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28c（向きに合わせて回す・保存して次へ）</p>
   </div>
 </div>
 
@@ -1930,6 +1930,17 @@ body.viewing #stage{cursor:default}
   function refit(){fit();setTimeout(fit,120);setTimeout(fit,500);}
   window.addEventListener('pageshow',refit);
   window.addEventListener('orientationchange',refit);
+  // iPadで回転の合図が届かないことがあるので、別の合図と、画面の大きさの見張りも併用する
+  try{if(screen.orientation&&screen.orientation.addEventListener) screen.orientation.addEventListener('change',refit);}catch(e){}
+  try{var mqo=window.matchMedia('(orientation: portrait)');if(mqo.addEventListener) mqo.addEventListener('change',refit);else if(mqo.addListener) mqo.addListener(refit);}catch(e){}
+  (function(){
+    var lw=0,lh=0;
+    setInterval(function(){
+      if(document.hidden) return;
+      var w=screenW(),h=screenH();
+      if(w!==lw||h!==lh){lw=w;lh=h;fit();if(!editing&&reshapeBlank()){sizeCanvas();syncUI();}}
+    },400);
+  })();
   document.addEventListener('visibilitychange',function(){if(!document.hidden) refit();});
   if(window.visualViewport) window.visualViewport.addEventListener('resize',function(){if(!editing) fit();});
   if(window.ResizeObserver){try{new ResizeObserver(function(){fit();}).observe(stage);}catch(e){}}
