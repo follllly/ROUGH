@@ -1,28 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>ラフ帳</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ラフ帳">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#e7e4dc">
 <link rel="apple-touch-icon" href="data:image/png;base64,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">
-
-
-
-
-
-
-
-
-
-
-
-
-
+<meta charset="utf-8">
+<title>ラフ帳</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap" rel="stylesheet">
@@ -171,8 +156,8 @@ body.viewing #viewBar{display:flex}
 body.viewing .dock,body.viewing #topBar,body.viewing #dockOpen,body.viewing #pop,body.viewing #selBox{display:none !important}
 body.viewing #stage{cursor:default}
 .ib[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
-@keyframes inNext{from{transform:translateX(48px);opacity:.25}to{transform:none;opacity:1}}
-@keyframes inPrev{from{transform:translateX(-48px);opacity:.25}to{transform:none;opacity:1}}
+@keyframes inNext{from{translate:48px 0;opacity:.25}to{translate:none;opacity:1}}
+@keyframes inPrev{from{translate:-48px 0;opacity:.25}to{translate:none;opacity:1}}
 #paper.flipN{animation:inNext .22s ease-out}
 #paper.flipP{animation:inPrev .22s ease-out}
 @media (prefers-reduced-motion:reduce){.chrome,#toast{transition:none}#paper.flipN,#paper.flipP{animation:none}}
@@ -200,6 +185,7 @@ body.viewing #stage{cursor:default}
   <button class="ib" id="bPrev" type="button" aria-label="前のページ">‹</button>
   <button class="ib" id="bPages" type="button" aria-label="ページ一覧">1/1</button>
   <button class="ib" id="bNext" type="button" aria-label="次のページ">›</button>
+  <button class="ib" id="bDone" type="button" aria-label="保存して次の白紙へ">保存→次</button>
   <button class="ib" id="bZoom" type="button" aria-label="拡大を切り替え">×1</button>
   <button class="ib" id="bStrip" type="button" aria-label="ページの帯を表示" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="7" width="5" height="10" rx="1"/><rect x="9.5" y="7" width="5" height="10" rx="1"/><rect x="16" y="7" width="5" height="10" rx="1"/></svg></button>
   <button class="ib" id="bView" type="button" aria-label="通して見る"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></svg></button>
@@ -331,7 +317,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28a（一枚絵のノート）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28b（向きに合わせて回す・保存して次へ）</p>
   </div>
 </div>
 
@@ -667,6 +653,13 @@ body.viewing #stage{cursor:default}
 
   /* ---------- geometry, zoom, pan ---------- */
   var geo={L:0,T:0,W0:100,H0:100}, view={z:1,tx:0,ty:0};
+  // 紙を向きに合わせて回しているかどうか（0 = そのまま、90 = 時計回りに90度）
+  var rot=0;
+  function turnFor(f,sw,sh){
+    // 新しいページの形を「画面の向きに合わせる」設定のときだけ、描いた紙も向きに合わせて回す
+    if(prefs.shape!=='auto') return 0;
+    return (sw>=sh)!==(f.w>=f.h)?90:0;
+  }
   function sizeCanvas(){
     reshapeBlank();
     var f=fmt();
@@ -685,11 +678,22 @@ body.viewing #stage{cursor:default}
     if(window.scrollX||window.scrollY) window.scrollTo(0,0);
     var SW=screenW(), SH=screenH();
     var f=fmt(), pad=4, rs=stripReserve(), aw=SW-pad*2, ah=SH-rs-pad*2;
-    var s=Math.min(aw/f.w,ah/f.h);
-    geo.W0=Math.floor(f.w*s);geo.H0=Math.floor(f.h*s);
-    geo.L=Math.round((SW-geo.W0)/2);geo.T=Math.round((SH-rs-geo.H0)/2);
+    rot=turnFor(f,SW,SH-rs);
+    // 画面に出す箱の大きさ（回したときは縦横が入れ替わる）
+    var bw=rot?f.h:f.w, bh=rot?f.w:f.h;
+    var s=Math.min(aw/bw,ah/bh);
+    var PW=Math.floor(f.w*s), PH=Math.floor(f.h*s);      // 紙そのものの大きさ（回す前）
+    var DW=rot?PH:PW, DH=rot?PW:PH;                         // 画面に出る箱の大きさ
+    geo.W0=DW;geo.H0=DH;geo.PW=PW;geo.PH=PH;
+    geo.L=Math.round((SW-DW)/2);geo.T=Math.round((SH-rs-DH)/2);
     wrap.style.left=geo.L+'px';wrap.style.top=geo.T+'px';
-    wrap.style.width=geo.W0+'px';wrap.style.height=geo.H0+'px';
+    wrap.style.width=DW+'px';wrap.style.height=DH+'px';
+    // 紙は箱の中央に置き、回すときは紙の中心を軸に回す
+    canvas.style.position='absolute';
+    canvas.style.width=PW+'px';canvas.style.height=PH+'px';
+    canvas.style.left=Math.round((DW-PW)/2)+'px';canvas.style.top=Math.round((DH-PH)/2)+'px';
+    canvas.style.transformOrigin='50% 50%';
+    canvas.style.transform=rot?'rotate(90deg)':'';
     applyView();
   }
   function applyView(){
@@ -709,12 +713,16 @@ body.viewing #stage{cursor:default}
     view.z=nz;view.tx=cx-geo.L-u*nz;view.ty=cy-geo.T-v*nz;
     applyView();
   }
+  // 画面上の1pxあたりの紙の大きさの逆数（拡大率 k）。回しているときは紙の縦が画面の横になる
+  function scaleOf(r,f){return rot?r.width/f.h:r.width/f.w;}
   function pt(e){
-    var r=canvas.getBoundingClientRect(), f=fmt();
-    return {x:(e.clientX-r.left)*f.w/r.width,y:(e.clientY-r.top)*f.h/r.height};
+    var r=canvas.getBoundingClientRect(), f=fmt(), k=scaleOf(r,f), dx=e.clientX-r.left, dy=e.clientY-r.top;
+    if(rot) return {x:dy/k,y:(r.width-dx)/k};
+    return {x:dx/k,y:dy/k};
   }
   function toScreen(x,y){
-    var r=canvas.getBoundingClientRect(), f=fmt(), k=r.width/f.w;
+    var r=canvas.getBoundingClientRect(), f=fmt(), k=scaleOf(r,f);
+    if(rot) return {x:r.left+(r.width-y*k),y:r.top+x*k,k:k};
     return {x:r.left+x*k,y:r.top+y*k,k:k};
   }
 
@@ -747,6 +755,7 @@ body.viewing #stage{cursor:default}
     var p=page(), d=doc();
     $('#bUndo').disabled=!p.hist.length;
     $('#bRedo').disabled=!p.fut.length;
+    $('#bDone').disabled=!p.items.length;
     $('#bPages').textContent=(d.cur+1)+'/'+d.pages.length;
     $('#bPrev').disabled=d.cur===0;
     $('#bNext').textContent=d.cur===d.pages.length-1?'＋':'›';
@@ -1163,6 +1172,48 @@ body.viewing #stage{cursor:default}
   });
   $('#pgClose').addEventListener('click',function(){closeSheet('pageSheet');});
 
+  /* ---------- 保存して次の白紙へ ---------- */
+  // 押すと今のページをPNGにして保存（iPadは共有メニュー）。保存できたとき（または共有を閉じずに終えたとき）だけ、
+  // そのページを白紙にして次の絵へ進める。共有メニューを閉じたときは消さない
+  function deliverAsync(blob,name){
+    if(!blob) return Promise.resolve(false);
+    if(dl){
+      return Promise.resolve().then(function(){return dl.save({filename:name,data:blob});})
+        .then(function(){return true;},function(){toast('保存できませんでした');return false;});
+    }
+    var file=null;
+    try{file=new File([blob],name,{type:blob.type});}catch(e){}
+    var touch=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
+    if(touch&&file&&navigator.canShare&&navigator.canShare({files:[file]})){
+      return navigator.share({files:[file]}).then(function(){return true;},function(err){
+        if(err&&err.name==='AbortError') return false;
+        download(blob,name);return true;
+      });
+    }
+    download(blob,name);
+    return Promise.resolve(true);
+  }
+  var clearing=false;
+  function saveAndClear(){
+    if(clearing) return;
+    if(!page().items.length){toast('このページはまだ白紙です');return;}
+    clearing=true;
+    var d=doc(), i=d.cur, mode=state.mode, t=new Date(), pd=function(n){return ('0'+n).slice(-2);};
+    var name='rafucho-'+modeSlug(mode)+'-'+t.getFullYear()+pd(t.getMonth()+1)+pd(t.getDate())+'-'+pd(t.getHours())+pd(t.getMinutes())+'-'+pd(i+1)+'.png';
+    canvasBlob(pageToCanvas(page(),mode,exportScale()),'image/png').then(function(b){
+      return deliverAsync(b,name);
+    }).then(function(ok){
+      clearing=false;
+      if(!ok) return;
+      if(doc()!==d||d.cur!==i) return; // 保存の間に動かしたときは何もしない
+      d.pages[i]=blankPage();
+      sel=null;
+      sizeCanvas();syncUI();save();
+      toast('保存して白紙にしました');
+    },function(){clearing=false;});
+  }
+  $('#bDone').addEventListener('click',saveAndClear);
+
   /* ---------- sheets & menu ---------- */
   function openSheet(id){togglePop(false);$('#'+id).classList.add('open');}
   function closeSheet(id){$('#'+id).classList.remove('open');}
@@ -1255,10 +1306,11 @@ body.viewing #stage{cursor:default}
   function updateSelBox(tmp){
     var it=tmp||sel;
     if(!it||editing){selBox.hidden=true;return;}
-    var b=bounds(it), s=toScreen(b.x,b.y), pad=6;
+    var b=bounds(it), p1=toScreen(b.x,b.y), p2=toScreen(b.x+b.w,b.y+b.h), pad=6;
+    var x0=Math.min(p1.x,p2.x), y0=Math.min(p1.y,p2.y);
     selBox.hidden=false;
-    selBox.style.left=(s.x-pad)+'px';selBox.style.top=(s.y-pad)+'px';
-    selBox.style.width=(b.w*s.k+pad*2)+'px';selBox.style.height=(b.h*s.k+pad*2)+'px';
+    selBox.style.left=(x0-pad)+'px';selBox.style.top=(y0-pad)+'px';
+    selBox.style.width=(Math.abs(p2.x-p1.x)+pad*2)+'px';selBox.style.height=(Math.abs(p2.y-p1.y)+pad*2)+'px';
   }
   function positionTA(){
     if(!editing) return;
@@ -1320,7 +1372,11 @@ body.viewing #stage{cursor:default}
 
   /* selected text: drag to move, handle to resize, tap to edit */
   var selDrag=null;
-  function localDelta(dx,dy){var r=canvas.getBoundingClientRect(),f=fmt();return {x:dx*f.w/r.width,y:dy*f.h/r.height};}
+  function localDelta(dx,dy){
+    var r=canvas.getBoundingClientRect(), f=fmt(), k=scaleOf(r,f);
+    if(rot) return {x:dy/k,y:-dx/k};
+    return {x:dx/k,y:dy/k};
+  }
   $('#selBody').addEventListener('pointerdown',function(e){
     if(!sel) return;
     e.preventDefault();this.setPointerCapture(e.pointerId);
