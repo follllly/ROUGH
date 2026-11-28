@@ -163,7 +163,11 @@ body.viewing #stage{cursor:default}
 #ref .rh .sp{flex:1}
 #ref .rb{position:relative;display:block;background:#ddd}
 #ref img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
-#ref .grip{position:absolute;right:0;bottom:0;width:34px;height:34px;background:linear-gradient(135deg,transparent 55%,rgba(0,0,0,.45) 56%,rgba(0,0,0,.45) 62%,transparent 63%,transparent 72%,rgba(0,0,0,.45) 73%,rgba(0,0,0,.45) 79%,transparent 80%)}
+#ref .grip{position:absolute;width:40px;height:40px}
+#ref .grip.tl{left:0;top:0}#ref .grip.tr{right:0;top:0}#ref .grip.bl{left:0;bottom:0}
+#ref .grip.tl::after,#ref .grip.tr::after,#ref .grip.bl::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:rgba(0,0,0,.4);box-shadow:0 0 0 2px rgba(255,255,255,.7)}
+#ref .grip.tl::after{left:6px;top:6px}#ref .grip.tr::after{right:6px;top:6px}#ref .grip.bl::after{left:6px;bottom:6px}
+#ref .grip.br{right:0;bottom:0;background:linear-gradient(135deg,transparent 55%,rgba(0,0,0,.45) 56%,rgba(0,0,0,.45) 62%,transparent 63%,transparent 72%,rgba(0,0,0,.45) 73%,rgba(0,0,0,.45) 79%,transparent 80%)}
 #ref.trace{width:auto!important;left:auto!important;right:12px;top:70px!important}
 #ref.trace .rb{display:none}
 #ref.trace .rh input[type=range]{display:block}
@@ -180,7 +184,7 @@ body.viewing #stage{cursor:default}
 <div id="stage"><div id="wrap"><canvas id="paper" aria-label="紙"></canvas><img id="traceImg" alt=""></div></div>
 <div id="ref" hidden>
   <div class="rh"><button type="button" id="refMode">なぞる</button><input id="refOp" type="range" min="10" max="90" step="5" aria-label="参照画像の濃さ"><span class="sp"></span><button type="button" id="refX" aria-label="参照画像を閉じる">×</button></div>
-  <div class="rb"><img id="refImg" alt="参照画像"><div class="grip" id="refGrip"></div></div>
+  <div class="rb"><img id="refImg" alt="参照画像"><div class="grip br" data-c="br"></div><div class="grip tl" data-c="tl"></div><div class="grip tr" data-c="tr"></div><div class="grip bl" data-c="bl"></div></div>
 </div>
 <input id="refInput" type="file" accept="image/*" hidden>
 
@@ -343,7 +347,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28e（参照画像）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28f（参照画像）</p>
   </div>
 </div>
 
@@ -1984,19 +1988,42 @@ body.viewing #stage{cursor:default}
   $('#refOp').addEventListener('input',function(){refSet.op=+this.value;refApply();});
   $('#refOp').addEventListener('change',refSave);
   (function(){
-    var drag=null;
-    function down(e,kind){e.preventDefault();e.stopPropagation();drag={k:kind,x:e.clientX,y:e.clientY,l:refSet.x,t:refSet.y,w:refSet.w};try{e.target.setPointerCapture(e.pointerId);}catch(_){}}
-    $('#refGrip').addEventListener('pointerdown',function(e){down(e,'size');});
-    $('.rb',refBox).addEventListener('pointerdown',function(e){if(e.target.id!=='refGrip') down(e,'move');});
+    var drag=null, pts={}, pinch=null;
+    function bodyRatio(){var r=$('.rb',refBox).getBoundingClientRect();return r.height/Math.max(1,r.width);}
+    function down(e,kind){e.preventDefault();e.stopPropagation();drag={k:kind,x:e.clientX,y:e.clientY,l:refSet.x,t:refSet.y,w:refSet.w,r:bodyRatio()};try{e.target.setPointerCapture(e.pointerId);}catch(_){}}
+    $$('#ref .grip').forEach(function(g){g.addEventListener('pointerdown',function(e){down(e,g.dataset.c);});});
+    $('.rb',refBox).addEventListener('pointerdown',function(e){if(!e.target.classList.contains('grip')) down(e,'move');});
     $('.rh',refBox).addEventListener('pointerdown',function(e){if(refSet.mode!=='trace'&&!/^(BUTTON|INPUT)$/.test(e.target.tagName)) down(e,'move');});
+    function maxW(){return Math.min(window.innerWidth-20,1200);}
+    refBox.addEventListener('pointerdown',function(e){
+      pts[e.pointerId]={x:e.clientX,y:e.clientY};
+      var ids=Object.keys(pts);
+      if(ids.length===2){ // 2本指でつまんで大きさを変える
+        var a=pts[ids[0]],b=pts[ids[1]];
+        pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,w:refSet.w,cx:refSet.x+refSet.w/2,r:bodyRatio()};drag=null;
+      }
+    },true);
     refBox.addEventListener('pointermove',function(e){
+      if(pts[e.pointerId]){pts[e.pointerId].x=e.clientX;pts[e.pointerId].y=e.clientY;}
+      if(pinch){
+        var ids=Object.keys(pts);if(ids.length<2) return;
+        var a=pts[ids[0]],b=pts[ids[1]], nw=clamp(pinch.w*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,120,maxW());
+        refSet.w=nw;refSet.x=pinch.cx-nw/2;refApply();return;
+      }
       if(!drag) return;
       var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
       if(drag.k==='move'){refSet.x=clamp(drag.l+dx,-refSet.w+60,window.innerWidth-60);refSet.y=clamp(drag.t+dy,0,window.innerHeight-60);}
-      else refSet.w=clamp(drag.w+dx,120,Math.min(window.innerWidth-20,900));
+      else{
+        var sx=drag.k.indexOf('l')>=0?-1:1, sy=drag.k.indexOf('t')>=0?-1:1;
+        var vx=sx*dx, vy=sy*dy/drag.r, dw=Math.abs(vx)>=Math.abs(vy)?vx:vy;
+        var nw=clamp(drag.w+dw,120,maxW());
+        refSet.w=nw;
+        if(sx<0) refSet.x=drag.l+(drag.w-nw);
+        if(sy<0) refSet.y=Math.max(0,drag.t+(drag.w-nw)*drag.r);
+      }
       refApply();
     });
-    function up(){if(drag){drag=null;refSave();}}
+    function up(e){delete pts[e.pointerId];if(Object.keys(pts).length<2&&pinch){pinch=null;refSave();}if(drag){drag=null;refSave();}}
     refBox.addEventListener('pointerup',up);refBox.addEventListener('pointercancel',up);
   })();
 
