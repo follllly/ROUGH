@@ -157,7 +157,7 @@ body.viewing .dock,body.viewing #topBar,body.viewing #dockOpen,body.viewing #pop
 body.viewing #stage{cursor:default}
 .ib[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 #ref{position:fixed;z-index:6;left:12px;top:70px;width:240px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.28);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
-#ref .rh{display:flex;align-items:center;gap:6px;padding:4px 6px;background:rgba(250,248,242,.96);font-size:12px}
+#ref .rh{cursor:grab;display:flex;align-items:center;gap:6px;padding:4px 6px;background:rgba(250,248,242,.96);font-size:12px}
 #ref .rh button{border:0;background:#e9e6dd;border-radius:8px;padding:6px 9px;font:inherit;color:#222}
 #ref .rh input[type=range]{width:90px;display:none}
 #ref .rh .sp{flex:1}
@@ -343,7 +343,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28d（参照画像）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28e（参照画像）</p>
   </div>
 </div>
 
@@ -1988,6 +1988,7 @@ body.viewing #stage{cursor:default}
     function down(e,kind){e.preventDefault();e.stopPropagation();drag={k:kind,x:e.clientX,y:e.clientY,l:refSet.x,t:refSet.y,w:refSet.w};try{e.target.setPointerCapture(e.pointerId);}catch(_){}}
     $('#refGrip').addEventListener('pointerdown',function(e){down(e,'size');});
     $('.rb',refBox).addEventListener('pointerdown',function(e){if(e.target.id!=='refGrip') down(e,'move');});
+    $('.rh',refBox).addEventListener('pointerdown',function(e){if(refSet.mode!=='trace'&&!/^(BUTTON|INPUT)$/.test(e.target.tagName)) down(e,'move');});
     refBox.addEventListener('pointermove',function(e){
       if(!drag) return;
       var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
