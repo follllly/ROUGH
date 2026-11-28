@@ -156,7 +156,7 @@ body.viewing #viewBar{display:flex}
 body.viewing .dock,body.viewing #topBar,body.viewing #dockOpen,body.viewing #pop,body.viewing #selBox{display:none !important}
 body.viewing #stage{cursor:default}
 .ib[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
-#ref{position:fixed;z-index:6;left:12px;top:70px;width:240px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.28);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#ref{will-change:transform;contain:layout paint;position:fixed;z-index:6;left:12px;top:70px;width:240px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.28);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
 #ref .rh{cursor:grab;display:flex;align-items:center;gap:6px;padding:4px 6px;background:rgba(250,248,242,.96);font-size:12px}
 #ref .rh button{border:0;background:#e9e6dd;border-radius:8px;padding:6px 9px;font:inherit;color:#222}
 #ref .rh input[type=range]{width:90px;display:none}
@@ -347,7 +347,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28g（参照画像）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28h（参照画像）</p>
   </div>
 </div>
 
@@ -1964,10 +1964,24 @@ body.viewing #stage{cursor:default}
     traceImg.style.opacity=refSet.op/100;
     $('#refMode').textContent=refSet.mode==='trace'?'窓にする':'なぞる';
     $('#refOp').value=refSet.op;
-    if(refSet.mode!=='trace'){refBox.style.left=refSet.x+'px';refBox.style.top=refSet.y+'px';refBox.style.width=refSet.w+'px';}
+    if(refSet.mode!=='trace'){refBox.style.left='0';refBox.style.top='0';refBox.style.width=refSet.w+'px';refBox.style.transform='translate3d('+refSet.x+'px,'+refSet.y+'px,0)';}
+    else refBox.style.transform='';
   }
+  var refRaf=0;
+  function refApplyRaf(){if(refRaf) return;refRaf=requestAnimationFrame(function(){refRaf=0;refApply();});}
   function refSave(){if(idb&&refUrl) idbPut('ref',{url:refUrl,set:refSet});}
-  function refSetUrl(u){refUrl=u;refImg.src=u;traceImg.src=u;refSet.on=true;refApply();}
+  function refSetUrl(u){
+    refUrl=u;traceImg.src=u;refSet.on=true;refApply();
+    // 窓には小さめの画像を使う（大きい画像を動かすたびに縮小すると重いため）
+    var im=new Image();
+    im.onload=function(){
+      var m=Math.min(1,900/Math.max(im.naturalWidth,im.naturalHeight)), c=document.createElement('canvas');
+      c.width=Math.round(im.naturalWidth*m);c.height=Math.round(im.naturalHeight*m);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      if(refUrl===u) refImg.src=c.toDataURL('image/jpeg',0.85);
+    };
+    im.src=u;
+  }
   $('#refPick').addEventListener('click',function(){$('#refInput').click();});
   $('#refInput').addEventListener('change',function(){
     var f=this.files&&this.files[0];this.value='';if(!f) return;
@@ -2013,7 +2027,7 @@ body.viewing #stage{cursor:default}
       if(!pinch) return;
       var ids=Object.keys(pts);if(ids.length<2) return;
       var a=pts[ids[0]],b=pts[ids[1]], nw=clamp(pinch.w*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,120,maxW());
-      refSet.w=nw;refSet.x=pinch.cx-nw/2;refApply();
+      refSet.w=nw;refSet.x=pinch.cx-nw/2;refApplyRaf();
       e.stopPropagation();
     },true);
     function endTouch(e){
@@ -2038,7 +2052,7 @@ body.viewing #stage{cursor:default}
         if(sx<0) refSet.x=drag.l+(drag.w-nw);
         if(sy<0) refSet.y=Math.max(0,drag.t+(drag.w-nw)*drag.r);
       }
-      refApply();
+      refApplyRaf();
     });
     function up(e){if(drag){drag=null;refSave();}}
     refBox.addEventListener('pointerup',up);refBox.addEventListener('pointercancel',up);
