@@ -87,6 +87,10 @@ body.editing .chrome{display:none}
 #dockOpen{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--panel);box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;display:grid;place-items:center}
 #dockOpen[hidden],.dock[hidden]{display:none}
 
+#mvBox{position:fixed;z-index:3;border:2px dashed var(--accent);border-radius:6px;pointer-events:none;background:rgba(47,91,216,.05)}
+#mvBar{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top));z-index:5;display:flex;gap:6px}
+#mvBar button{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:9px 13px;font:inherit;font-size:13px;color:var(--ink);box-shadow:0 3px 10px rgba(0,0,0,.12)}
+body.drawing #mvBar,body.viewing #mvBar,body.viewing #mvBox{display:none!important}
 #selBox{position:fixed;z-index:3;border:1.5px dashed var(--accent);border-radius:4px;touch-action:none}
 #selBox[hidden]{display:none}
 #selBody{position:absolute;inset:0;cursor:move;touch-action:none}
@@ -191,6 +195,8 @@ body.viewing #stage{cursor:default}
 </div>
 <input id="refInput" type="file" accept="image/*" hidden>
 
+<div id="mvBox" hidden></div>
+<div id="mvBar" hidden><button type="button" id="mvAll">全部を選ぶ</button><button type="button" id="mvNone">選ぶのをやめる</button></div>
 <div id="selBox" hidden>
   <div id="selBody"></div>
   <button id="selDel" type="button" aria-label="この文字を消す"><svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -223,6 +229,7 @@ body.viewing #stage{cursor:default}
   <button class="tb" type="button" data-tool="eraser" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 14.5l8-8a2 2 0 013 0l2.5 2.5a2 2 0 010 3L11 20H8z"/><path d="M7 20h12"/></svg>消す</button>
   <button class="tb" type="button" data-tool="text" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg>文字</button>
   <button class="tb" type="button" data-tool="bucket" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M5 11l6-6 7 7-6 6a2 2 0 01-3 0l-4-4a2 2 0 010-3z"/><path d="M5 11h13"/><path d="M20.5 15.5c0 1.2-.9 2-.9 2s-.9-.8-.9-2a.9.9 0 011.8 0z" fill="currentColor"/></svg>塗る</button>
+  <button class="tb" type="button" data-tool="move" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>動かす</button>
   <button class="tb" type="button" data-tool="frame" id="bFrame" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M12 5v14M4 12h16"/></svg><span id="frameLbl">コマ</span></button>
   <span class="vsep"></span>
   <button class="tb" id="bColor" type="button" aria-label="色と太さ" aria-expanded="false"><span class="swdot" id="swdot"></span>色</button>
@@ -347,7 +354,7 @@ body.viewing #stage{cursor:default}
       <div>
         <h3>使い方</h3>
         <p style="margin-bottom:8px">ページめくり：指で描かない設定のとき、指で紙を左へはらうと次のページ（最後のページなら新しい紙）、右へはらうと前のページ。右上の帯のボタンでページの一覧を下に出し入れでき、▶で描かずに通して見られます（左右にはらう、画面の左右をタップ、←→キーでめくれます）。</p>
-        <p>2本指でつまむと拡大（最大3倍）、そのまま動かすと移動。文字は「文字」を選んで紙をタップ。出てきた枠はなぞって移動、右下の丸をドラッグで大きさを変えます。枠をタップするともう一度書き直せます。</p>
+        <p style="margin-bottom:8px">絵を動かす：下の「動かす」を選び、動かしたい部分を指かペンで囲むと選ばれます（「全部を選ぶ」で全部）。点線の枠の中をドラッグすると移動します。</p><p>2本指でつまむと拡大（最大3倍）、そのまま動かすと移動。文字は「文字」を選んで紙をタップ。出てきた枠はなぞって移動、右下の丸をドラッグで大きさを変えます。枠をタップするともう一度書き直せます。</p>
         <p style="margin-top:8px">ペンと消しゴムは、選んでいる方のボタンをもう一度タップすると入れ替わります（キーボードならEキー）。ペンの先と反対側の消しゴム、または側面ボタンに対応したペンでは、押している間だけ消しゴムになります。</p>
       </div>
     </div>
@@ -355,7 +362,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28m（明るさ）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-29a（動かす）</p>
   </div>
 </div>
 
@@ -743,6 +750,7 @@ body.viewing #stage{cursor:default}
     return (sw>=sh)!==(f.w>=f.h)?90:0;
   }
   function sizeCanvas(){
+    mv=null;
     reshapeBlank();
     var f=fmt();
     K=Math.min(3,Math.sqrt(MAXPX/(f.w*f.h)));
@@ -787,7 +795,7 @@ body.viewing #stage{cursor:default}
     }
     wrap.style.transform='translate('+view.tx+'px,'+view.ty+'px) scale('+view.z+')';
     $('#bZoom').textContent='×'+(Math.round(view.z*10)/10);
-    updateSelBox();positionTA();
+    updateSelBox();positionTA();if(!mvDrag) updMvBox();
   }
   function zoomAt(nz,cx,cy){
     nz=clamp(nz,1,MAXZ);
@@ -855,6 +863,7 @@ body.viewing #stage{cursor:default}
     $('#vStrip').setAttribute('aria-pressed',String(!!prefs.strip));
     $('#vCount').textContent=(d.cur+1)+' / '+d.pages.length;
     syncPop();
+    updMvBox();
     scheduleStrip();
   }
   function syncPop(){
@@ -967,6 +976,7 @@ body.viewing #stage{cursor:default}
     leaveEdit();
     prefs.tool=t;
     if(t!=='text'){sel=null;updateSelBox();}
+    if(t!=='move') mv=null;
     togglePop(false);
     syncUI();save();
   }
@@ -1542,8 +1552,8 @@ body.viewing #stage{cursor:default}
   }
   function cancelDraw(){
     if(!activeDraw) return;
-    live=null;dragFrame=null;activeDraw=null;
-    setDrawing(false);fullRender();
+    live=null;dragFrame=null;activeDraw=null;mvDrag=null;
+    setDrawing(false);fullRender();updMvBox();
   }
   function startGesture(){
     var t=touchList();if(t.length<2){gesture=null;return;}
@@ -1559,6 +1569,132 @@ body.viewing #stage{cursor:default}
     applyView();
   }
   function snap(v){return Math.round(v/10)*10;}
+
+  /* ---------- 動かす：囲んで選び、ドラッグで移動 ---------- */
+  var mv=null, mvDrag=null, mvBox=$('#mvBox');
+  function mvValid(){if(mv&&mv.items!==page().items) mv=null;return !!mv;}
+  function mvClear(){mv=null;updMvBox();}
+  function itemBox(it){
+    var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    function add(x,y,r){x0=Math.min(x0,x-r);y0=Math.min(y0,y-r);x1=Math.max(x1,x+r);y1=Math.max(y1,y+r);}
+    if(it.t==='s') it.p.forEach(function(q){add(q[0],q[1],q[2]/2);});
+    else if(it.t==='text'){var b=bounds(it);add(b.x,b.y,0);add(b.x+b.w,b.y+b.h,0);}
+    else if(it.t==='rects') it.list.forEach(function(r){add(r[0],r[1],0);add(r[0]+r[2],r[1]+r[3],0);});
+    else if(it.t==='fill') add(it.x,it.y,4);
+    return {x:x0,y:y0,w:x1-x0,h:y1-y0};
+  }
+  function inPoly(x,y,poly){
+    var c=false;
+    for(var i=0,j=poly.length-1;i<poly.length;j=i++){
+      var a=poly[i],b=poly[j];
+      if(((a[1]>y)!==(b[1]>y))&&(x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])) c=!c;
+    }
+    return c;
+  }
+  function shiftItem(it,dx,dy){
+    if(it.t==='s') return Object.assign({},it,{p:it.p.map(function(q){return [r1(q[0]+dx),r1(q[1]+dy),q[2]];})});
+    if(it.t==='text'||it.t==='fill') return Object.assign({},it,{x:r1(it.x+dx),y:r1(it.y+dy)});
+    if(it.t==='rects') return Object.assign({},it,{list:it.list.map(function(r){return [Math.round(r[0]+dx),Math.round(r[1]+dy),r[2],r[3]];})});
+    return it;
+  }
+  function updMvBox(dx,dy){
+    mvValid();
+    $('#mvBar').hidden=prefs.tool!=='move'||!!editing;
+    $('#mvNone').hidden=!mv;
+    if(!mv||prefs.tool!=='move'){mvBox.hidden=true;return;}
+    var b=mv.box, ox=dx||0, oy=dy||0, pad=8;
+    var a=toScreen(b.x+ox,b.y+oy), c=toScreen(b.x+b.w+ox,b.y+b.h+oy);
+    mvBox.hidden=false;
+    mvBox.style.left=(Math.min(a.x,c.x)-pad)+'px';mvBox.style.top=(Math.min(a.y,c.y)-pad)+'px';
+    mvBox.style.width=(Math.abs(c.x-a.x)+pad*2)+'px';mvBox.style.height=(Math.abs(c.y-a.y)+pad*2)+'px';
+  }
+  // 選んだ線だけの絵（layer）と、選ばなかった線だけの絵（ubase）を作っておき、動かす間は2枚を重ねるだけにする
+  function mvSelect(test){
+    var items=page().items, idx=[], box=null;
+    items.forEach(function(it,i){
+      var ok=false;
+      if(it.t==='s'){var n=0;it.p.forEach(function(q){if(test(q[0],q[1])) n++;});ok=n>=Math.max(1,it.p.length*0.5);}
+      else if(it.t==='fill') ok=test(it.x,it.y);
+      else{var b=itemBox(it);ok=test(b.x+b.w/2,b.y+b.h/2);}
+      if(ok){
+        idx.push(i);
+        if(it.t!=='fill'){
+          var bb=itemBox(it);
+          if(!box) box={x0:bb.x,y0:bb.y,x1:bb.x+bb.w,y1:bb.y+bb.h};
+          else{box.x0=Math.min(box.x0,bb.x);box.y0=Math.min(box.y0,bb.y);box.x1=Math.max(box.x1,bb.x+bb.w);box.y1=Math.max(box.y1,bb.y+bb.h);}
+        }
+      }
+    });
+    fullRender();
+    if(!idx.length||!box){mvClear();toast('囲んだ中に線がありません');return;}
+    var set={};idx.forEach(function(i){set[i]=1;});
+    var W=canvas.width,H=canvas.height;
+    var ub=document.createElement('canvas');ub.width=W;ub.height=H;
+    renderItems(ub.getContext('2d'),items.filter(function(_,i){return !set[i];}),state.mode,K);
+    var A=ctx.getImageData(0,0,W,H), B=ub.getContext('2d').getImageData(0,0,W,H), a=A.data, bd=B.data;
+    for(var k=0;k<a.length;k+=4){
+      if(a[k]===bd[k]&&a[k+1]===bd[k+1]&&a[k+2]===bd[k+2]&&a[k+3]===bd[k+3]) a[k+3]=0;
+    }
+    var ly=document.createElement('canvas');ly.width=W;ly.height=H;ly.getContext('2d').putImageData(A,0,0);
+    mv={items:items,set:set,box:{x:box.x0,y:box.y0,w:box.x1-box.x0,h:box.y1-box.y0},layer:ly,ubase:ub};
+    updMvBox();
+  }
+  $('#mvAll').addEventListener('click',function(){
+    if(!page().items.length){toast('まだ何も描いていません');return;}
+    mvSelect(function(){return true;});
+  });
+  $('#mvNone').addEventListener('click',mvClear);
+  function mvStart(e,p){
+    mvValid();
+    if(mv){
+      var b=mv.box, m=14/Math.max(0.1,toScreen(0,0).k);
+      if(p.x>=b.x-m&&p.x<=b.x+b.w+m&&p.y>=b.y-m&&p.y<=b.y+b.h+m){
+        mvDrag={kind:'move',sx:p.x,sy:p.y,dx:0,dy:0};
+        activeDraw={id:e.pointerId};setDrawing(true);
+        return;
+      }
+      mvClear();
+    }
+    prepBaseFromMain();
+    mvDrag={kind:'lasso',pts:[[p.x,p.y]],sx:e.clientX,sy:e.clientY};
+    activeDraw={id:e.pointerId};setDrawing(true);
+  }
+  function mvStep(e){
+    var p=pt(e);
+    if(mvDrag.kind==='move'){
+      mvDrag.dx=p.x-mvDrag.sx;mvDrag.dy=p.y-mvDrag.sy;
+      clearMain();ctx.drawImage(mv.ubase,0,0);ctx.drawImage(mv.layer,mvDrag.dx*K,mvDrag.dy*K);
+      updMvBox(mvDrag.dx,mvDrag.dy);
+      return;
+    }
+    mvDrag.pts.push([p.x,p.y]);
+    var q=mvDrag.pts, k=toScreen(0,0).k||1;
+    drawBaseThen(function(c){
+      c.save();c.strokeStyle='#2f5bd8';c.lineWidth=2/k;c.setLineDash([8/k,6/k]);
+      c.beginPath();c.moveTo(q[0][0],q[0][1]);for(var i=1;i<q.length;i++) c.lineTo(q[i][0],q[i][1]);c.closePath();c.stroke();c.restore();
+    });
+    ctx.setTransform(1,0,0,1,0,0);
+  }
+  function mvEnd(cancel){
+    var d=mvDrag;mvDrag=null;
+    if(d.kind==='move'){
+      if(cancel||(Math.abs(d.dx)<0.5&&Math.abs(d.dy)<0.5)){fullRender();updMvBox();return;}
+      var m=mv, set=m.set, items=page().items.map(function(it,i){return set[i]?shiftItem(it,d.dx,d.dy):it;});
+      mv=null;commit(items);mv=m;
+      mv.items=page().items;mv.box.x+=d.dx;mv.box.y+=d.dy;
+      // 選んだ絵の位置を、動かした先に合わせて置き直す
+      var ly=document.createElement('canvas');ly.width=mv.layer.width;ly.height=mv.layer.height;
+      ly.getContext('2d').drawImage(mv.layer,d.dx*K,d.dy*K);mv.layer=ly;
+      fullRender();updMvBox();
+      return;
+    }
+    drawBaseThen(function(){});ctx.setTransform(1,0,0,1,0,0);
+    if(cancel) return;
+    var poly=d.pts;
+    var xs=poly.map(function(q){return q[0];}), ys=poly.map(function(q){return q[1];});
+    if(Math.max.apply(null,xs)-Math.min.apply(null,xs)<8&&Math.max.apply(null,ys)-Math.min.apply(null,ys)<8){mvClear();return;}
+    mvSelect(function(x,y){return inPoly(x,y,poly);});
+  }
 
   stage.addEventListener('pointerdown',function(e){
     if(!ready) return;
@@ -1581,7 +1717,7 @@ body.viewing #stage{cursor:default}
       if(fingersBlocked()&&activeDraw) return;
       var n=touchList().length;
       if(n>=2){tapCand=null;cancelDraw();startGesture();e.preventDefault();return;}
-      if(fingersBlocked()){
+      if(fingersBlocked()&&prefs.tool!=='move'){
         // 指で描かない設定のとき、指の軽い1回タップは「ペン⇔消しゴム」の切り替えに使う
         tapCand={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp};
         return;
@@ -1598,6 +1734,7 @@ body.viewing #stage{cursor:default}
     var f=fmt(), p=pt(e), tool=prefs.tool;
     /* pen eraser end / eraser button / barrel button erases while held (Wacom, Surface, S Pen etc.) */
     if(tool==='pen'&&e.pointerType==='pen'&&((e.buttons&34)||e.button===5)) tool='eraser';
+    if(tool==='move'){leaveEdit();if(sel){sel=null;updateSelBox();}mvStart(e,p);return;}
 
     if(tool==='text'){
       var wasEditing=!!editing;
@@ -1655,6 +1792,7 @@ body.viewing #stage{cursor:default}
     if(gesture&&e.pointerType==='touch'){e.preventDefault();gestureStep();return;}
     if(!activeDraw||e.pointerId!==activeDraw.id) return;
     e.preventDefault();
+    if(mvDrag){mvStep(e);return;}
     if(dragFrame){
       var f=fmt(), p=pt(e);
       dragFrame.x1=snap(clamp(p.x,0,f.w));dragFrame.y1=snap(clamp(p.y,0,f.h));
@@ -1710,6 +1848,7 @@ body.viewing #stage{cursor:default}
   function finishDraw(cancel){
     if(!activeDraw) return;
     activeDraw=null;setDrawing(false);
+    if(mvDrag){mvEnd(cancel);return;}
     if(dragFrame){
       var r=frameRect();dragFrame=null;
       if(!cancel&&r[2]>=20&&r[3]>=20){
