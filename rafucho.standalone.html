@@ -347,7 +347,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28h（参照画像）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28i（参照画像）</p>
   </div>
 </div>
 
@@ -2011,30 +2011,42 @@ body.viewing #stage{cursor:default}
     function maxW(){return Math.min(window.innerWidth-20,1200);}
     // 2本指でつまんで大きさを変える。1本目が窓の上なら、2本目は画面のどこでもよい
     var winId=null;
+    function mid(){var ids=Object.keys(pts),a=pts[ids[0]],b=pts[ids[1]];return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,d:Math.hypot(a.x-b.x,a.y-b.y)||1};}
     function startPinch(){
-      var ids=Object.keys(pts);if(ids.length<2) return;
-      var a=pts[ids[0]],b=pts[ids[1]];
-      pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,w:refSet.w,cx:refSet.x+refSet.w/2};drag=null;
+      if(Object.keys(pts).length<2) return;
+      var m=mid();
+      pinch={d:m.d,mx:m.x,my:m.y,w:refSet.w,x:refSet.x,y:refSet.y};drag=null;
     }
     document.addEventListener('pointerdown',function(e){
       if(e.pointerType!=='touch'||refBox.hidden||refSet.mode==='trace') return;
-      if(refBox.contains(e.target)){winId=e.pointerId;pts[e.pointerId]={x:e.clientX,y:e.clientY};}
-      else if(winId!==null&&pts[winId]){pts[e.pointerId]={x:e.clientX,y:e.clientY};startPinch();e.stopPropagation();e.preventDefault();}
+      var inWin=refBox.contains(e.target);
+      if(!inWin&&(winId===null||!pts[winId])) return;
+      if(inWin&&winId===null) winId=e.pointerId;
+      pts[e.pointerId]={x:e.clientX,y:e.clientY};
+      if(Object.keys(pts).length>=2){
+        // 2本目の指：窓の上でも外でも、つまむ操作にする（窓の移動や紙の操作には渡さない）
+        startPinch();e.stopPropagation();e.preventDefault();
+      }
     },true);
     document.addEventListener('pointermove',function(e){
       if(!pts[e.pointerId]) return;
       pts[e.pointerId].x=e.clientX;pts[e.pointerId].y=e.clientY;
       if(!pinch) return;
-      var ids=Object.keys(pts);if(ids.length<2) return;
-      var a=pts[ids[0]],b=pts[ids[1]], nw=clamp(pinch.w*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,120,maxW());
-      refSet.w=nw;refSet.x=pinch.cx-nw/2;refApplyRaf();
-      e.stopPropagation();
+      e.stopPropagation();e.preventDefault();
+      if(Object.keys(pts).length<2) return;
+      // 2本の指の真ん中を中心に拡大し、指と一緒に窓も動かす
+      var m=mid(), nw=clamp(pinch.w*m.d/pinch.d,120,maxW()), f=nw/pinch.w;
+      refSet.w=nw;
+      refSet.x=m.x-(pinch.mx-pinch.x)*f;
+      refSet.y=Math.max(0,m.y-(pinch.my-pinch.y)*f);
+      refApplyRaf();
     },true);
     function endTouch(e){
       if(!pts[e.pointerId]) return;
       var was=!!pinch;
       delete pts[e.pointerId];if(e.pointerId===winId) winId=null;
-      if(pinch&&Object.keys(pts).length<2){pinch=null;refSave();}
+      if(pinch&&Object.keys(pts).length<2){pinch=null;drag=null;refSave();}
+      if(!Object.keys(pts).length) winId=null;
       if(was) e.stopPropagation();
     }
     document.addEventListener('pointerup',endTouch,true);
