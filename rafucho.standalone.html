@@ -89,6 +89,7 @@ body.editing .chrome{display:none}
 
 #mvBox{position:fixed;z-index:3;border:2px dashed var(--accent);border-radius:6px;pointer-events:none;background:rgba(47,91,216,.05)}
 #mvBar{position:fixed;left:12px;top:calc(12px + env(safe-area-inset-top));z-index:5;display:flex;gap:6px}
+#mvBar[hidden]{display:none}
 #mvBar button{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:9px 13px;font:inherit;font-size:13px;color:var(--ink);box-shadow:0 3px 10px rgba(0,0,0,.12)}
 body.drawing #mvBar,body.viewing #mvBar,body.viewing #mvBox{display:none!important}
 #selBox{position:fixed;z-index:3;border:1.5px dashed var(--accent);border-radius:4px;touch-action:none}
@@ -226,6 +227,7 @@ body.viewing #stage{cursor:default}
   <button class="tb small" id="bHide" type="button" aria-label="道具をしまう"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg></button>
   <span class="vsep"></span>
   <button class="tb" type="button" data-tool="pen" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/></svg>ペン</button>
+  <button class="tb" type="button" data-tool="brush" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4l6 6-7.5 7.5-6-6z"/><path d="M6.5 11.5c-2 1-3 3-3 5.5 0 1.5-.5 2.5-1.5 3 3.5.5 6.5-.5 8-3"/></svg>太筆</button>
   <button class="tb" type="button" data-tool="eraser" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 14.5l8-8a2 2 0 013 0l2.5 2.5a2 2 0 010 3L11 20H8z"/><path d="M7 20h12"/></svg>消す</button>
   <button class="tb" type="button" data-tool="text" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg>文字</button>
   <button class="tb" type="button" data-tool="bucket" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M5 11l6-6 7 7-6 6a2 2 0 01-3 0l-4-4a2 2 0 010-3z"/><path d="M5 11h13"/><path d="M20.5 15.5c0 1.2-.9 2-.9 2s-.9-.8-.9-2a.9.9 0 011.8 0z" fill="currentColor"/></svg>塗る</button>
@@ -362,7 +364,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-29a（動かす）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-29b（太筆）</p>
   </div>
 </div>
 
@@ -430,7 +432,7 @@ body.viewing #stage{cursor:default}
     '#000000','#262626','#404040','#5a5a5a','#767676','#939393','#b4b4b4','#ffffff',
     // 下の段：下描き（ラフ）用の薄い色
     '#c4c6cc','#f3aaa4','#f7c9a0','#f3e39a','#b3dcbb','#9fc8f2','#b3c0f2','#d2bdec'];
-  var RANGES={pen:[1,40,'size'],eraser:[6,90,'esize'],text:[16,200,'tsize']};
+  var RANGES={pen:[1,40,'size'],brush:[10,200,'bsize'],eraser:[6,90,'esize'],text:[16,200,'tsize']};
   var FONT='"Klee One","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif';
 
   function $(s){return document.querySelector(s);}
@@ -488,7 +490,7 @@ body.viewing #stage{cursor:default}
 
   /* ---------- state ---------- */
   function newPage(items,w,h){return {items:items||[],hist:[],fut:[],w:w||1000,h:h||1414};}
-  var prefs={tool:'pen',color:INK,base:INK,light:0,size:6,esize:28,tsize:48,uimin:false,pstr:60,pcurve:100,pspeed:true,shape:'auto',input:'auto',penEver:false,tapSwap:true,strip:false};
+  var prefs={tool:'pen',color:INK,base:INK,light:0,size:6,esize:28,tsize:48,bsize:50,bcol:null,pcol:null,lastDraw:'pen',uimin:false,pstr:60,pcurve:100,pspeed:true,shape:'auto',input:'auto',penEver:false,tapSwap:true,strip:false};
   var PRESETS={flat:[0,100,false],normal:[60,100,true],brush:[100,70,true]};
   var state=null;
   function parseSaved(d){
@@ -878,7 +880,7 @@ body.viewing #stage{cursor:default}
       dot.style.width=dsz+'px';dot.style.height=dsz+'px';
       dot.style.background=prefs.tool==='eraser'?'var(--muted)':prefs.color;
     }
-    var isPen=prefs.tool==='pen';
+    var isPen=prefs.tool==='pen'||prefs.tool==='brush';
     $('#penRows').hidden=!isPen;
     if(isPen){
       $('#pStr').value=prefs.pstr;$('#pCurve').value=prefs.pcurve;$('#pSpeed').checked=!!prefs.pspeed;
@@ -974,6 +976,17 @@ body.viewing #stage{cursor:default}
 
   function setTool(t){
     leaveEdit();
+    // 太筆は自分の色を覚えておく（ペンの色と別々）。消しゴムは、直前に使っていた方の色のまま
+    function slot(tool,last){return tool==='brush'||(tool==='eraser'&&last==='brush')?'b':'p';}
+    var s0=slot(prefs.tool,prefs.lastDraw);
+    if(t==='pen'||t==='brush') prefs.lastDraw=t;
+    var s1=slot(t,prefs.lastDraw);
+    if(s0!==s1){
+      var cur={color:prefs.color,base:prefs.base,light:prefs.light};
+      if(s0==='b') prefs.bcol=cur; else prefs.pcol=cur;
+      var nx=s1==='b'?(prefs.bcol||{color:'#939393',base:'#939393',light:0}):prefs.pcol;
+      if(nx){prefs.color=nx.color;prefs.base=nx.base;prefs.light=nx.light;}
+    }
     prefs.tool=t;
     if(t!=='text'){sel=null;updateSelBox();}
     if(t!=='move') mv=null;
@@ -982,13 +995,13 @@ body.viewing #stage{cursor:default}
   }
   /* tapping the tool that is already selected swaps pen <-> eraser */
   function swapPenEraser(){
-    var t=prefs.tool==='pen'?'eraser':'pen';
-    setTool(t);toast(t==='pen'?'ペンにしました':'消しゴムにしました');
+    var t=prefs.tool==='eraser'?(prefs.lastDraw||'pen'):'eraser';
+    setTool(t);toast(t==='pen'?'ペンにしました':t==='brush'?'太筆にしました':'消しゴムにしました');
   }
   $$('[data-tool]').forEach(function(b){
     b.addEventListener('click',function(){
       var t=b.dataset.tool;
-      if(t===prefs.tool&&(t==='pen'||t==='eraser')) swapPenEraser();
+      if(t===prefs.tool&&(t==='pen'||t==='eraser'||t==='brush')) swapPenEraser();
       else setTool(t);
     });
   });
@@ -1761,17 +1774,17 @@ body.viewing #stage{cursor:default}
       return;
     }
     /* pen or eraser */
-    var isE=tool==='eraser', size0=isE?prefs.esize:prefs.size;
+    var isE=tool==='eraser', size0=isE?prefs.esize:(tool==='brush'?prefs.bsize:prefs.size);
     var w0=isE?size0:penWidth(size0,e);
     prepBaseFromMain(); // 描き終わりに線をきれいに描き直すため、描く前の紙を取っておく
-    live={t:'s',c:prefs.color,e:isE,p:[[r1(p.x),r1(p.y),r1(w0)]],w:w0,cx:e.clientX,cy:e.clientY,ts:e.timeStamp};
+    live={t:'s',br:tool==='brush',c:prefs.color,e:isE,p:[[r1(p.x),r1(p.y),r1(w0)]],w:w0,cx:e.clientX,cy:e.clientY,ts:e.timeStamp};
     ctx.save();ctx.setTransform(K,0,0,K,0,0);styleStroke(ctx,live);
     ctx.beginPath();ctx.arc(p.x,p.y,w0/2,0,Math.PI*2);ctx.fill();ctx.restore();
     activeDraw={id:e.pointerId};setDrawing(true);
   });
 
   function addPoint(ev){
-    var p=pt(ev), isE=live.e, size0=isE?prefs.esize:prefs.size, w;
+    var p=pt(ev), isE=live.e, size0=isE?prefs.esize:(live.br?prefs.bsize:prefs.size), w;
     var dt=Math.max(1,ev.timeStamp-live.ts), dist=Math.hypot(ev.clientX-live.cx,ev.clientY-live.cy);
     if(isE) w=size0;
     else{
@@ -1831,7 +1844,7 @@ body.viewing #stage{cursor:default}
       var penQuiet=performance.now()-lastPenContact>600&&!activeDraw;
       if(!cancel&&e.pointerType==='touch'&&!gesture&&penQuiet){
         if(prefs.tapSwap&&tdt<300&&Math.hypot(tdx,tdy)<10
-           &&(prefs.tool==='pen'||prefs.tool==='eraser')) swapPenEraser();
+           &&(prefs.tool==='pen'||prefs.tool==='eraser'||prefs.tool==='brush')) swapPenEraser();
         // 指で左右にはらうとページをめくる（最後のページで左へはらうと新しい紙）
         else if(tdt<700&&Math.abs(tdx)>60&&Math.abs(tdx)>1.5*Math.abs(tdy)){
           if(tdx<0) goNext(); else goPrev();
