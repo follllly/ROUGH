@@ -347,7 +347,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28f（参照画像）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28g（参照画像）</p>
   </div>
 </div>
 
@@ -1995,21 +1995,38 @@ body.viewing #stage{cursor:default}
     $('.rb',refBox).addEventListener('pointerdown',function(e){if(!e.target.classList.contains('grip')) down(e,'move');});
     $('.rh',refBox).addEventListener('pointerdown',function(e){if(refSet.mode!=='trace'&&!/^(BUTTON|INPUT)$/.test(e.target.tagName)) down(e,'move');});
     function maxW(){return Math.min(window.innerWidth-20,1200);}
-    refBox.addEventListener('pointerdown',function(e){
-      pts[e.pointerId]={x:e.clientX,y:e.clientY};
-      var ids=Object.keys(pts);
-      if(ids.length===2){ // 2本指でつまんで大きさを変える
-        var a=pts[ids[0]],b=pts[ids[1]];
-        pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,w:refSet.w,cx:refSet.x+refSet.w/2,r:bodyRatio()};drag=null;
-      }
+    // 2本指でつまんで大きさを変える。1本目が窓の上なら、2本目は画面のどこでもよい
+    var winId=null;
+    function startPinch(){
+      var ids=Object.keys(pts);if(ids.length<2) return;
+      var a=pts[ids[0]],b=pts[ids[1]];
+      pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,w:refSet.w,cx:refSet.x+refSet.w/2};drag=null;
+    }
+    document.addEventListener('pointerdown',function(e){
+      if(e.pointerType!=='touch'||refBox.hidden||refSet.mode==='trace') return;
+      if(refBox.contains(e.target)){winId=e.pointerId;pts[e.pointerId]={x:e.clientX,y:e.clientY};}
+      else if(winId!==null&&pts[winId]){pts[e.pointerId]={x:e.clientX,y:e.clientY};startPinch();e.stopPropagation();e.preventDefault();}
     },true);
+    document.addEventListener('pointermove',function(e){
+      if(!pts[e.pointerId]) return;
+      pts[e.pointerId].x=e.clientX;pts[e.pointerId].y=e.clientY;
+      if(!pinch) return;
+      var ids=Object.keys(pts);if(ids.length<2) return;
+      var a=pts[ids[0]],b=pts[ids[1]], nw=clamp(pinch.w*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,120,maxW());
+      refSet.w=nw;refSet.x=pinch.cx-nw/2;refApply();
+      e.stopPropagation();
+    },true);
+    function endTouch(e){
+      if(!pts[e.pointerId]) return;
+      var was=!!pinch;
+      delete pts[e.pointerId];if(e.pointerId===winId) winId=null;
+      if(pinch&&Object.keys(pts).length<2){pinch=null;refSave();}
+      if(was) e.stopPropagation();
+    }
+    document.addEventListener('pointerup',endTouch,true);
+    document.addEventListener('pointercancel',endTouch,true);
     refBox.addEventListener('pointermove',function(e){
-      if(pts[e.pointerId]){pts[e.pointerId].x=e.clientX;pts[e.pointerId].y=e.clientY;}
-      if(pinch){
-        var ids=Object.keys(pts);if(ids.length<2) return;
-        var a=pts[ids[0]],b=pts[ids[1]], nw=clamp(pinch.w*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,120,maxW());
-        refSet.w=nw;refSet.x=pinch.cx-nw/2;refApply();return;
-      }
+      if(pinch) return;
       if(!drag) return;
       var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
       if(drag.k==='move'){refSet.x=clamp(drag.l+dx,-refSet.w+60,window.innerWidth-60);refSet.y=clamp(drag.t+dy,0,window.innerHeight-60);}
@@ -2023,7 +2040,7 @@ body.viewing #stage{cursor:default}
       }
       refApply();
     });
-    function up(e){delete pts[e.pointerId];if(Object.keys(pts).length<2&&pinch){pinch=null;refSave();}if(drag){drag=null;refSave();}}
+    function up(e){if(drag){drag=null;refSave();}}
     refBox.addEventListener('pointerup',up);refBox.addEventListener('pointercancel',up);
   })();
 
