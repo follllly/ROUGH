@@ -62,6 +62,8 @@ body.editing .chrome{display:none}
 
 #pop{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));z-index:6;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:12px;width:min(320px,calc(100% - 24px))}
 #pop[hidden]{display:none}
+.ltlab{font-size:12px;color:var(--muted);white-space:nowrap}
+#ltRange{flex:1}
 .sw{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
 .sw button{aspect-ratio:1;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
 .sw button[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--accent)}
@@ -229,6 +231,11 @@ body.viewing #stage{cursor:default}
 
 <div id="pop" class="chrome" hidden>
   <div class="sw" id="swatches"></div>
+  <div class="sz" id="ltRow">
+    <span class="ltlab">暗く</span>
+    <input id="ltRange" type="range" min="-90" max="90" step="5" aria-label="明るさ">
+    <span class="ltlab">明るく</span>
+  </div>
   <div class="sz" id="szRow">
     <div class="szprev"><i id="szDot"></i></div>
     <input id="szRange" type="range" min="1" max="40" step="1" aria-label="太さ">
@@ -348,7 +355,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28l（黒の種類）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28m（明るさ）</p>
   </div>
 </div>
 
@@ -412,8 +419,8 @@ body.viewing #stage{cursor:default}
   var K=3, MAXZ=3, EXP=2, MAXPX=12.6e6, THS=0.4, LH=1.35, PAPER='#fffdf7', INK='#1d1d21';
   var KEY='rafucho-v2';
   var SWATCHES=['#1d1d21','#6b6b72','#d6342c','#f08a24','#f2c744','#3f9a55','#2f5bd8','#8e5bd0',
-    // 2段目：いろいろな黒（真っ黒・あたたかい黒・つめたい黒・墨・こげ茶・緑がかった黒・紫がかった黒・濃い灰）
-    '#000000','#2b231e','#1a2230','#33333a','#3d2c22','#1f2b25','#2c2233','#4a4a52',
+    // 2段目：黒から白まで、明るさを段階的に
+    '#000000','#262626','#404040','#5a5a5a','#767676','#939393','#b4b4b4','#ffffff',
     // 下の段：下描き（ラフ）用の薄い色
     '#c4c6cc','#f3aaa4','#f7c9a0','#f3e39a','#b3dcbb','#9fc8f2','#b3c0f2','#d2bdec'];
   var RANGES={pen:[1,40,'size'],eraser:[6,90,'esize'],text:[16,200,'tsize']};
@@ -474,7 +481,7 @@ body.viewing #stage{cursor:default}
 
   /* ---------- state ---------- */
   function newPage(items,w,h){return {items:items||[],hist:[],fut:[],w:w||1000,h:h||1414};}
-  var prefs={tool:'pen',color:INK,size:6,esize:28,tsize:48,uimin:false,pstr:60,pcurve:100,pspeed:true,shape:'auto',input:'auto',penEver:false,tapSwap:true,strip:false};
+  var prefs={tool:'pen',color:INK,base:INK,light:0,size:6,esize:28,tsize:48,uimin:false,pstr:60,pcurve:100,pspeed:true,shape:'auto',input:'auto',penEver:false,tapSwap:true,strip:false};
   var PRESETS={flat:[0,100,false],normal:[60,100,true],brush:[100,70,true]};
   var state=null;
   function parseSaved(d){
@@ -851,7 +858,9 @@ body.viewing #stage{cursor:default}
     scheduleStrip();
   }
   function syncPop(){
-    $$('#swatches button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===prefs.color));});
+    $$('#swatches button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===(prefs.base||prefs.color)));});
+    $('#ltRow').style.display=prefs.tool==='eraser'?'none':'flex';
+    $('#ltRange').value=prefs.light||0;
     var rk=rangeKey(), row=$('#szRow');
     row.style.display=rk?'flex':'none';
     if(rk){
@@ -908,14 +917,26 @@ body.viewing #stage{cursor:default}
       syncPop();save();
     });
   });
+  // 選んだ色を、黒の方か白の方へ寄せる（-100で黒、+100で白）
+  function shade(hex,v){
+    var c=hexRgb(hex), t=Math.abs(v)/100, to=v<0?0:255;
+    return '#'+c.map(function(x){var y=Math.round(x+(to-x)*t);return ('0'+y.toString(16)).slice(-2);}).join('');
+  }
+  function applyColor(c){
+    prefs.color=c;
+    if(editing){editing.c=c;positionTA();}
+    else if(sel){var n=Object.assign({},sel,{c:c});replaceItem(sel,n);}
+    syncUI();save();
+  }
+  $('#ltRange').addEventListener('input',function(){
+    prefs.light=Number(this.value);
+    applyColor(shade(prefs.base||prefs.color,prefs.light));
+  });
   SWATCHES.forEach(function(c){
     var b=document.createElement('button');
     b.type='button';b.dataset.c=c;b.style.background=c;b.setAttribute('aria-label','色 '+c);
     b.addEventListener('click',function(){
-      prefs.color=c;
-      if(editing){editing.c=c;positionTA();}
-      else if(sel){var n=Object.assign({},sel,{c:c});replaceItem(sel,n);}
-      syncUI();save();
+      prefs.base=c;prefs.light=0;applyColor(c);
     });
     $('#swatches').appendChild(b);
   });
