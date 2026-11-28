@@ -348,7 +348,7 @@ body.viewing #stage{cursor:default}
       <button class="btn primary" id="mExport" type="button">書き出し</button>
       <button class="btn" id="mClose" type="button">閉じる</button>
     </div>
-    <p style="margin:0;font-size:12px">バージョン 2026-11-28j（線のつなぎ目）</p>
+    <p style="margin:0;font-size:12px">バージョン 2026-11-28k（薄い色）</p>
   </div>
 </div>
 
@@ -411,7 +411,9 @@ body.viewing #stage{cursor:default}
   // K：画面の描く面の解像度（紙の何倍か）。紙が大きい一枚絵では、iPadの上限（約1670万ピクセル）に収まるよう下げる
   var K=3, MAXZ=3, EXP=2, MAXPX=12.6e6, THS=0.4, LH=1.35, PAPER='#fffdf7', INK='#1d1d21';
   var KEY='rafucho-v2';
-  var SWATCHES=['#1d1d21','#6b6b72','#d6342c','#f08a24','#f2c744','#3f9a55','#2f5bd8','#8e5bd0'];
+  var SWATCHES=['#1d1d21','#6b6b72','#d6342c','#f08a24','#f2c744','#3f9a55','#2f5bd8','#8e5bd0',
+    // 下の段：下描き（ラフ）用の薄い色
+    '#c4c6cc','#f3aaa4','#f7c9a0','#f3e39a','#b3dcbb','#9fc8f2','#b3c0f2','#d2bdec'];
   var RANGES={pen:[1,40,'size'],eraser:[6,90,'esize'],text:[16,200,'tsize']};
   var FONT='"Klee One","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif';
 
